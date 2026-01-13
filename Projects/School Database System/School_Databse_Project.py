@@ -1,241 +1,290 @@
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#                                                                                     Imported Libraries
+#
+#
+#                                                                                     
+#
+#______________________________________________________________________________________________________________________________________________________________________________________________________
 import sqlite3
 import getpass
 import hashlib
 
-def hash_password(ProvPass):
-    hash_object = hashlib.sha256(ProvPass.encode())
-    hex_dig = hash_object.hexdigest()
-    ProvPass=hex_dig
-    return ProvPass
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#
+#                                                                                       MENU FUNCTIONS
+#
+#
+#_______________________________________________________________________________________________________________________________________________________________________
 
-def Menu():
-    print("Welcome to the School Database System!\n Enter 1-3 to be take to the function of your choice!\n 1. Enter Student, Enrollment, Professor or Course Data\n 2. Query a table from Students, Enrollments, Courses or Professors\n 3. Join tables\n")
-    SubMenuChoice=int(input())
-    print(SubMenuChoice)
-    if(SubMenuChoice == 1):
-        print("You have chosen to enter Student, Professor, Course or Enrollment data. Now starting...\n")
-        SubMenuChoice1()
-    elif(SubMenuChoice == 2):
-        print("You have chosen to select a range of data from a specific table. Now starting...\n")
-        SubMenuChoice2()
-    elif(SubMenuChoice == 3):
-        print("You have chosen to join two tables together and query that range. Now starting...\n")
-        SubMenuChoice3()
-    else:
-        print("MMM Wrong! try again BRAINIAC")
+def main():
+    try:
+        conn = sqlite3.connect(("SchoolDatabase.db"))
+        build_table(conn)
         Menu()
+        conn.close()
+    except:
+        print("An error occurred while connecting to the database.")
+def Menu():
+    try:
+        if (loginValidate() == True):
+            SubMenu()
+        else:
+            Menu()
+    except ValueError:
+        print("Unacceptable Input, Please Try Again.\n")
+        Menu()
+def SubMenu():
+    try:
+        while True:
+            SubMenu = {"1": SubMenuChoice1, "2": SubMenuChoice2, "3": SubMenuChoice3}
+            SubMenuChoice=int(input("Welcome to the School Database System!\n Enter 1-3 to be take to the function of your choice!\n 1. Enter Student, Enrollment, Professor or Course Data\n 2. Query a table from Students, Enrollments, Courses or Professors\n 3. Join tables\n"))
+            SubMenu.get(str(SubMenuChoice), lambda: "Invalid choice")()
+    except ValueError:
+            print("Unacceptable Input, Please Try Again.\n")
 
-#Defines the function called based on user input from function Menu()
 def SubMenuChoice1():
-    FunctionChoice=int(input("Enter number 1-4 to take you to the correct function:\n1. Enter Student Data\n2. Enter Enrollment Data\n3. Enter Professor Data\n4. Enter Course Data\n"))
-    if(FunctionChoice == 1):
-        print("You have chosen to enter Student data. Now starting...\n")
-        StudentAmount=int(input("How many students are being entered?\n"))
-        insert_StudentData(conn,StudentAmount)
-
-    elif(FunctionChoice == 2):
-        print("You have chosen to enter Enrollment data. Now starting...\n")
-        EnrollmentAmount=int(input("How many students are being Enrolled?\n"))
-        insert_EnrollmentData(conn,EnrollmentAmount)
-
-    elif(FunctionChoice == 3):
-        print("You have chosen to enter Professor data. Now starting...\n")
-        ProfessorAmount=int(input("How many professors are being entered?\n"))
-        insert_ProfessorData(conn,ProfessorAmount)
-
-    elif(FunctionChoice == 4):
-        print("You have chosen to enter Course data. Now starting...\n")
-        CourseAmount=int(input("How many courses are being entered?\n"))
-        insert_CourseData(conn,CourseAmount)
-    else:
-        print("MMM Wrong!")
+    try:
+        SubMenu1 = {"1": insert_StudentData, "2": insert_EnrollmentData, "3": insert_ProfessorData, "4": insert_CourseData}
+        UserChoice=int(input("THIS FUNCTION MUST ONLY BE USED FOR LEGITIMATE BUSINESS PURPOSES, MISUSE RESULTS IN LEGAL ACTION.\nEnter your Professor ID to continue\n"))
+        UserPass=getpass.getpass(prompt = str("Enter your Password to continue:\n"))
+        if loginValidate(UserChoice,UserPass) == True:
+            SubMenu1.get(str(UserChoice), lambda: "Invalid choice")()
+        else:
+            SubMenuChoice1()
+    except ValueError:
+        print("Unacceptable Input, Please Try Again.\n")
         SubMenuChoice1()
-
 def SubMenuChoice2():
-    print("THIS FUNCTION MUST ONLY BE USED FOR LEGITIMATE BUSINESS PURPOSES, MISUSE RESULTS IN LEGAL ACTION.")
-    ProvID=input("Enter your Professor ID to continueL\n")
-    ProvPass=input("Enter your Password to continue:\n")
-    loginValidate(ProvID,ProvPass)
-
-def SubMenuChoice3():
-    print("HAHAHAHAHHAHAA")
-
-def SelectDatafunction():
-    select_data(conn)
-    print("Press Any Key To Return To Menu\n")
-    input()
-
-def loginValidate(ProvID, ProvPass):
-    connection = sqlite3.connect('SchoolDatabase.db')
-    cursor = connection.cursor()
-
-    cursor.execute('SELECT HASHEDPASSWORDS FROM ProfPass WHERE ProfessorID={ProvID}')
-    check = cursor.fetchall()
-    for i in check:
-        if ProvID in i and hash_password(ProvPass) in i:
-            print(f"Welcome Professor {ProvID}, you are logged into the system now")
+    try:
+        loginValidate()
+        if (loginValidate() == True):
             SelectDatafunction()
-        else: 
-            print("Login Failed, Incorrect ID or Password")
+        else:
             SubMenuChoice2()
 
+    except ValueError:
+        print("Unacceptable Input, Please Try Again.\n")
+        SubMenuChoice2()
+def SubMenuChoice3():
+    pass
+
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#
+#                                                                                    Security Functions
+#
+#
+#______________________________________________________________________________________________________________________________________________________________________
+
+def hash_password(ProvPass):
+    try:
+        hash_object = hashlib.sha256(ProvPass.encode())
+        hex_dig = hash_object.hexdigest()
+        ProvPass=hex_dig
+        return ProvPass
+    except:
+        print("An error occurred during password hashing.")
+        return None
+def loginValidate():
+    try:
+        connection = sqlite3.connect('SchoolDatabase.db')
+        cursor = connection.cursor()
+        ProvID=int(input("THIS PROGRAM MUST ONLY BE USED FOR LEGITIMATE BUSINESS PURPOSES, MISUSE RESULTS IN LEGAL ACTION.\nEnter your Professor ID to continue\n"))
+        ProvPass=getpass.getpass(prompt = str("Enter your Password to continue:\n"))
+        cursor.execute(f'SELECT HASHEDPASSWORD FROM ProfPass WHERE ProfessorID={ProvID}')
+        StoredCred = cursor.fetchone()[0]
+        connection.close()
+        if (ProvID <= 30 and ProvID >= 0) and (hash_password(ProvPass) == StoredCred):
+            print(f"Welcome Professor {ProvID}, you are logged into the system now")
+            return True
+        else: 
+            print("Login Failed, Incorrect ID or Password")
+            Menu()
+            return False
+    except Exception as e:
+        print("An error occurred during login:", e)
+        Menu()
+        return False
+
+#----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#
+#                                                                      Database Functions(uncallable directly by user)
+#
+#
+#______________________________________________________________________________________________________________________________________________________________________
 
 
 def build_table(conn):
-    #Students table which has StudentID which is a foreign key for Enrollments
-    conn.execute("""CREATE TABLE IF NOT EXISTS Students(
-                 StudentID INTEGER PRIMARY KEY,
-                 Firstname TEXT NOT NULL,
-                 Surname TEXT NOT NULL,
-                 EmailAddress TEXT NOT NULL
-    );""")
-    
-    #Professors table which contains ProfID which is a foreign key for Courses
-    conn.execute("""CREATE TABLE IF NOT EXISTS Professors(
-                 ProfID INTEGER PRIMARY KEY,
-                 Firstname TEXT NOT NULL,
-                 Surname TEXT NOT NULL,
-                 EmailAddress TEXT NOT NULL
-    );""")
-    
-    #Courses table which contains a foregin key for Enrollments(CourseID) and a foreign key from Professors(ProfID)
-    conn.execute("""CREATE TABLE IF NOT EXISTS Courses( 
-                 CourseID INTEGER PRIMARY KEY,
-                 CourseName TEXT NOT NULL,
-                 CourseDesc TEXT NOT NULL,
-                 ProfID INTEGER NOT NULL,
-                 FOREIGN KEY (ProfID) REFERENCES Professors(ProfID)
-    );""")
-    
-    #Enrollments table which contains a foreign key for Courses and a foreign key from Students
-    conn.execute("""CREATE TABLE IF NOT EXISTS Enrollments(
-                 EnrollmentID INTEGER PRIMARY KEY,
-                 EnrollmentDate DATE NOT NULL,
-                 StudentID INTEGER NOT NULL,
-                 CourseID INTEGER NOT NULL,
-                 FOREIGN KEY (StudentID) REFERENCES Students(StudentID),
-                 FOREIGN KEY (CourseID) REFERENCES Courses(CourseID)
-    );""")
-    conn.execute("""CREATE TABLE IF NOT EXISTS ProfPass(
-                 ProfessorID INTEGER PRIMARY KEY,
-                 HASHEDPASSWORD TEXT NOT NULL,
-                 PASSWORDAGE INTEGER NOT NULL
-    );""")
-
-    conn.commit()
-
-#Inserts data based on a query
-
-#Inserts Student Data into the Students table
-def insert_StudentData(conn,StudentAmount):
-    catagories_Students = ["StudentID","FirstName", "Surname", "EmailAddress"]
-    StudentID=0
-    for i in range (StudentAmount):
-        StudentID= i+1
-        FirstName = str(input("Enter First Name:\n"))
-        Surname = str(input("Enter Surname:\n"))
-        EmailAddress = str(input("Enter Email Address: \n"))
-        conn.execute("""INSERT INTO STUDENTS (FirstName, Surname, EmailAddress)
-        VALUES (?,?,?)""", (FirstName, Surname, EmailAddress))
-    print("Commiting to Database. Press Any Key To Return To Menu\n")
-    input()
-    conn.commit()
-    Menu()
-
-#Inserts Professor Data into the Professors Table
-def insert_ProfessorData(conn,ProfessorAmount):
-    catagories_Professors = ["ProfID","FirstName","Surname","EmailAddress"]
-    ProfessorID=0
-    for i in range (ProfessorAmount):
-        ProfID = i+1
-        FirstName = str(input("Enter FirstName:\n "))
-        Surname = str(input("Enter Surname:\n"))
-        EmailAddress = str(input("Enter Email Address:\n"))
-        conn.execute("""INSERT INTO Professors (FirstName, Surname, EmailAddress)
-        VALUES (?,?,?)""", (FirstName, Surname, EmailAddress))
-    print("Commiting to Database. Press Any Key To Return To Menu\n")
-    input()
-    conn.commit()
-    Menu()
-
-#Inserts Course Data into the Courses Table     
-def insert_CourseData(conn,CourseAmount):
-    catagories_Courses = ["CourseID","CourseName","CourseDesc","ProfID"]
-    CourseID=0
-    for i in range (CourseAmount):
-        CourseID = i+1
-        CourseName = str(input("Enter Course Name:\n "))
-        CourseDesc = str(input("Enter Course Description:\n"))
-        ProfID= int(input("Enter Professor ID:\n"))
-        conn.execute("""INSERT INTO Courses (CourseName, CourseDesc, ProfID)
-        VALUES (?,?,?)""", (CourseName, CourseDesc, ProfID))
-    print("Commiting to Database. Press Any Key To Return To Menu\n")
-    input()
-    conn.commit()
-    Menu()
-
-#Inserts Enrollment Data into the Enrollments Table
-def insert_EnrollmentData(conn,EnrollmentAmount):
-    catagories_Enrollments = ["EnrollmentID","EnrollmentDate","StudentID","CourseID"]
-    EnrollmentID=0
-    for i in range (EnrollmentAmount):
-        EnrollmentID = i+1
-        EnrollmentDate = str(input("Enter Student's Enrollment Date:\n "))
-        StudentID = str(input("Enter Student ID:\n"))
-        CourseID = str(input("Enter their CourseID:\n"))
-        conn.execute("""INSERT INTO Enrollments (EnrollmentDate, StudentID, CourseID)
-        VALUES (?,?,?)""", (EnrollmentDate, StudentID, CourseID))
-    print("Commiting to Database. Press Any Key To Return To Menu\n")
-    input()
-    conn.commit()
-    Menu()
-
-
-#Selects data from a table based on a query
-def select_data(conn):
     try:
 
-        cursor = conn.execute(str(input("Enter your SQL Query: \n")))
-    finally:
-        print("Placeholder")
-    for row in cursor:
-        print("ID = ", row[0])
-        print("NAME = ", row[1])
-        print("AGE = ", row[2])
-        print("ADDRESS = ", row[3])
-        print("SALARY = ", row[4], "\n")
-#Joins two databases together based on a matched key
+        conn.execute("""CREATE TABLE IF NOT EXISTS Students(StudentID INTEGER PRIMARY KEY, Firstname TEXT NOT NULL, Surname TEXT NOT NULL, EmailAddress TEXT NOT NULL);""")
+
+        conn.execute("""CREATE TABLE IF NOT EXISTS Professors(ProfID INT PRIMARY KEY, Firstname TEXT NOT NULL, Surname TEXT NOT NULL, EmailAddress TEXT NOT NULL);""")
+
+        conn.execute("""CREATE TABLE IF NOT EXISTS Courses(CourseID INTEGER PRIMARY KEY, CourseName TEXT NOT NULL, CourseDesc TEXT NOT NULL, ProfID INT NOT NULL, FOREIGN KEY (ProfID) REFERENCES Professors(ProfID) );""")
+
+        conn.execute("""CREATE TABLE IF NOT EXISTS Enrollments(EnrollmentID INTEGER PRIMARY KEY, EnrollmentDate DATE NOT NULL, StudentID INTEGER NOT NULL, CourseID INTEGER NOT NULL, FOREIGN KEY (StudentID) REFERENCES Students(StudentID), FOREIGN KEY (CourseID) REFERENCES Courses(CourseID));""")
+
+        conn.execute("""CREATE TABLE IF NOT EXISTS ProfPass(ProfessorID INT PRIMARY KEY, HASHEDPASSWORD TEXT NOT NULL, PASSWORDAGE INTEGER NOT NULL);""")
+
+        conn.commit()
+    except:
+        print("An error occurred while building the tables.")
+
+#----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#
+#                                                                            Database functions users can callaa
+#
+#
+#_____________________________________________________________________________________________________________________________________________________________________
+def insert_StudentData(conn,StudentAmount):
+    try:
+        catagories_Students = ["StudentID","FirstName", "Surname", "EmailAddress"]
+        StudentID=0
+        for i in range (StudentAmount):
+            StudentID= i+1
+            FirstName = str(input("Enter First Name:\n"))
+            Surname = str(input("Enter Surname:\n"))
+            EmailAddress = str(input("Enter Email Address: \n"))
+            conn.execute("""INSERT INTO STUDENTS (FirstName, Surname, EmailAddress)
+            VALUES (?,?,?)""", (FirstName, Surname, EmailAddress))
+        print("Commiting to Database. Press Any Key To Return To Menu\n")
+        input()
+        conn.commit()
+        Menu()
+    except:
+        print("An error occurred while inserting student data.")
+        Menu()
+
+def insert_ProfessorData(conn,ProfessorAmount):
+    try:
+        catagories_Professors = ["ProfID","FirstName","Surname","EmailAddress"]
+        ProfessorID=0
+        for i in range (ProfessorAmount):
+            ProfID = i+1
+            FirstName = str(input("Enter FirstName:\n "))
+            Surname = str(input("Enter Surname:\n"))
+            EmailAddress = str(input("Enter Email Address:\n"))
+            conn.execute("""INSERT INTO Professors (FirstName, Surname, EmailAddress)
+            VALUES (?,?,?)""", (FirstName, Surname, EmailAddress))
+        print("Commiting to Database. Press Any Key To Return To Menu\n")
+        input()
+        conn.commit()
+        Menu()
+    except:
+        print("An error occurred while inserting professor data.")
+        Menu()
+
+def insert_CourseData(conn,CourseAmount):
+    try:
+        catagories_Courses = ["CourseID","CourseName","CourseDesc","ProfID"]
+        CourseID=0
+        for i in range (CourseAmount):
+            CourseID = i+1
+            CourseName = str(input("Enter Course Name:\n "))
+            CourseDesc = str(input("Enter Course Description:\n"))
+            ProfID= int(input("Enter Professor ID:\n"))
+            conn.execute("""INSERT INTO Courses (CourseName, CourseDesc, ProfID)
+            VALUES (?,?,?)""", (CourseName, CourseDesc, ProfID))
+        print("Commiting to Database. Press Any Key To Return To Menu\n")
+        input()
+        conn.commit()
+        Menu()
+    except:
+        print("An error occurred while inserting course data.")
+        Menu()
+
+def insert_EnrollmentData(conn,EnrollmentAmount):
+    try:
+        catagories_Enrollments = ["EnrollmentID","EnrollmentDate","StudentID","CourseID"]
+        EnrollmentID=0
+        for i in range (EnrollmentAmount):
+            EnrollmentID = i+1
+            EnrollmentDate = str(input("Enter Student's Enrollment Date:\n "))
+            StudentID = str(input("Enter Student ID:\n"))
+            CourseID = str(input("Enter their CourseID:\n"))
+            conn.execute("""INSERT INTO Enrollments (EnrollmentDate, StudentID, CourseID)
+            VALUES (?,?,?)""", (EnrollmentDate, StudentID, CourseID))
+        print("Commiting to Database. Press Any Key To Return To Menu\n")
+        input()
+        conn.commit()
+        Menu()
+    except:
+        print("An error occurred while inserting enrollment data.")
+        Menu()
+
 def join_data(conn):
-    cursor = conn.execute(
-        """SELECT * FROM JOB JOIN COMPANY ON JOB.bossID = COMPANY.ID;""")
-    for i in cursor():
-        print(i)
+    try:
+        cursor = conn.execute(
+            """SELECT * FROM JOB JOIN COMPANY ON JOB.bossID = COMPANY.ID;""")
+        for i in cursor():
+            print(i)
+    except:
+        print("An error occurred while joining the data.")
 
+def SelectDatafunction():
+    try:
+        print("Below are the tables you can query from:\n 1. Students\n 2. Professors\n 3. Courses\n 4. Enrollments\nEnter your selection below:\n")
+        TableChoice=int(input(""))
+        if(TableChoice == 1):
+            select_StudentData(conn)
+        elif(TableChoice == 2):
+            select_ProfessorData(conn)
+        elif(TableChoice ==3):
+            select_CourseData(conn)
+        elif(TableChoice ==4):
+            select_EnrollData(conn)
+        else:
+            print("Unacceptable Input, Please Try Again.\n")
+            SelectDatafunction()
+    except ValueError:
+        print("Unacceptable Input, Please Try Again.\n")
+        SelectDatafunction()
 
-#Connects the SQL instance to all databases listed
-conn = sqlite3.connect(("SchoolDatabase.db"))
+def select_StudentData(conn):
+    try:
+        loginValidate()
+        if(loginValidate() == True):
+            cursor = conn.execute("""SELECT * FROM Students WHERE StudentID = ?;""", (int(input("Enter Student ID to query:\n")),))
+            print(cursor.fetchall())
+        else:
+            Menu()
+    except ValueError:
+        print("Invalid input. Please enter a valid Student ID.")
+        Menu()
 
-build_table(conn)
-#Menu()
-conn.execute("""INSERT INTO LoginDetails (ProfessorID, Hashed, score)
-          values(1, 99, 123)""")
+def select_ProfessorData(conn):
+    try:
+        loginValidate()
+        if(loginValidate() == True):
+            cursor = conn.execute("""SELECT * FROM Professors WHERE ProfID = ?;""", (int(input("Enter Professor ID to query:\n")),))
+            print(cursor.fetchall())
+        else:
+            Menu()
+    except ValueError:
+        print("Invalid input. Please enter a valid Professor ID.")
 
+def select_CourseData(conn):
+    try:
+        loginValidate()   
+        if(loginValidate() == True): 
+            cursor = conn.execute("""SELECT * FROM Courses WHERE CourseID = ?;""", (int(input("Enter Course ID to query:\n")),))
+            print(cursor.fetchall())
+        else:
+            Menu()
+    except ValueError:
+        print("Invalid input. Please enter a valid Course ID.")
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-conn.close()
+def select_EnrollData(conn):
+    try:
+        loginValidate()
+        if(loginValidate() == True):
+            cursor = conn.execute("""SELECT * FROM Enrollments WHERE EnrollmentID = ?;""", (int(input("Enter Enrollment ID to query:\n")),))
+            print(cursor.fetchall())
+        else:
+            Menu()
+    except ValueError:
+        print("Invalid input. Please enter a valid Enrollment ID.")
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#                                                                                Program Starts Here
+#_________________________________________________________________________________________________________________________________________________________________________
+main()

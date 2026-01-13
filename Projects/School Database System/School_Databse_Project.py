@@ -221,7 +221,7 @@ def join_data(conn):
     except:
         print("An error occurred while joining the data.")
 
-def SelectDatafunction():
+def SelectDatafunction(conn):
     try:
         print("Below are the tables you can query from:\n 1. Students\n 2. Professors\n 3. Courses\n 4. Enrollments\nEnter your selection below:\n")
         TableChoice=int(input(""))
